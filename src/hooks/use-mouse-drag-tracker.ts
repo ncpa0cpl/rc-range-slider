@@ -1,5 +1,6 @@
 import throttle from "lodash.throttle";
 import React from "react";
+import { isLeftMouseClick } from "../utilities/is-left-mouse-click";
 import { useRefState } from "./use-ref-state";
 
 type MouseMovement = {
@@ -10,15 +11,17 @@ type MouseMovement = {
 export const useMouseDragTracker = (throttleTime = 0) => {
   const isMouseDown = useRefState(false);
 
-  const onMouseDown = React.useCallback(() => {
-    isMouseDown.set(true);
+  const onMouseDown = React.useCallback((e: React.MouseEvent) => {
+    // if the left mouse button is clicked
+    if (isLeftMouseClick(e)) isMouseDown.set(true);
+
+    e.stopPropagation();
+    e.preventDefault();
   }, []);
 
   const onMoveListener = React.useRef<
     null | ((movement: MouseMovement) => void)
-  >(
-    null
-  );
+  >(null);
 
   const useMouseMovement = (
     onMove: (movement: MouseMovement) => void,
@@ -48,12 +51,12 @@ export const useMouseDragTracker = (throttleTime = 0) => {
       };
 
       let propagateMovementEvent = () => {
-        if(onMoveListener.current) {
+        if (onMoveListener.current) {
           onMoveListener.current({
             x: lastMovement.x / window.devicePixelRatio,
             y: lastMovement.y / window.devicePixelRatio,
           });
-          
+
           lastMovement.x = 0;
           lastMovement.y = 0;
         }
@@ -86,8 +89,8 @@ export const useMouseDragTracker = (throttleTime = 0) => {
   }, []);
 
   return {
-    draggedElemProps: { onMouseDown },
-    isDragging: isMouseDown,
+    draggedElemProps: { onMouseDown, draggable: false },
+    isDragging: isMouseDown.value,
     useMouseMovement,
   };
 };
